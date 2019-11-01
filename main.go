@@ -34,6 +34,9 @@ func main() {
 		args.timeout,
 		args.documentRoot,
 		args.excludedPattern,
+		args.excludePrivateHosts,
+		args.excludeLocalhost,
+		args.excludeLinkLocal,
 		newSemaphore(args.concurrency))
 
 	go c.CheckMany(m.Filenames(), rc)

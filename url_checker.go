@@ -115,6 +115,15 @@ func (c urlChecker) resolveURL(u string, f string) (string, bool, error) {
 		return "", false, errors.New("document root directory is not specified")
 	}
 
+	ru, err := url.Parse(c.documentRoot)
+	if err != nil {
+		return "", false, err
+	}
+	if ru.Scheme != "" {
+		ru.Path = path.Join(ru.Path, uu.Path)
+		return ru.String(), false, nil
+	}
+
 	return path.Join(c.documentRoot, uu.Path), true, nil
 }
 

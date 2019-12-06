@@ -1,8 +1,9 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -71,12 +72,20 @@ func (c urlChecker) Check(u string, f string) error {
 	c.semaphore.Request()
 	defer c.semaphore.Release()
 
+	var sc int
 	if c.timeout == 0 {
-		_, _, err := fasthttp.Get(nil, u)
-		return err
+		sc, _, err = fasthttp.Get(nil, u)
+	} else {
+		sc, _, err = fasthttp.GetTimeout(nil, u, c.timeout)
 	}
-
-	_, _, err = fasthttp.GetTimeout(nil, u, c.timeout)
+	if sc >= http.StatusBadRequest {
+		return fmt.Errorf("%s (HTTP error %d)", http.StatusText(sc), sc)
+	}
+	// Ignore errors from fasthttp about small buffer for URL headers,
+	// the content is discarded anyway.
+	if _, ok := err.(*fasthttp.ErrSmallBuffer); ok {
+		err = nil
+	}
 	return err
 }
 
@@ -112,7 +121,7 @@ func (c urlChecker) resolveURL(u string, f string) (string, bool, error) {
 	}
 
 	if c.documentRoot == "" {
-		return "", false, errors.New("document root directory is not specified")
+		return "", false, fmt.Errorf("document root directory is not specified")
 	}
 
 	ru, err := url.Parse(c.documentRoot)

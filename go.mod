@@ -10,6 +10,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/valyala/fasthttp v1.11.0
-	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3
+	github.com/valyala/fasthttp v1.14.0
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 )

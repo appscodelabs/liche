@@ -54,7 +54,7 @@ BIN_PLATFORMS    := $(DOCKER_PLATFORMS) darwin/amd64
 OS   := $(if $(GOOS),$(GOOS),$(shell go env GOOS))
 ARCH := $(if $(GOARCH),$(GOARCH),$(shell go env GOARCH))
 
-GO_VERSION       ?= 1.16
+GO_VERSION       ?= 1.17
 BUILD_IMAGE      ?= appscode/golang-dev:$(GO_VERSION)
 
 OUTBIN = bin/$(BIN)-$(OS)-$(ARCH)
@@ -228,7 +228,7 @@ $(BUILD_DIRS):
 dev: gen fmt build
 
 .PHONY: verify
-verify: verify-modules verify-gen
+verify: verify-gen verify-modules
 
 .PHONY: verify-modules
 verify-modules:

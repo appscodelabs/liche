@@ -42,13 +42,11 @@ type arguments struct {
 
 func getArguments(argv []string) (arguments, error) {
 	args, err := docopt.ParseArgs(fmt.Sprintf(usage, defaultConcurrency), argv, "0.2.0")
-
 	if err != nil {
 		return arguments{}, err
 	}
 
 	c, err := strconv.ParseInt(args["--concurrency"].(string), 10, 32)
-
 	if err != nil {
 		return arguments{}, err
 	}

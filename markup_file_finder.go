@@ -30,7 +30,6 @@ func (m markupFileFinder) Errors() chan error {
 func (m markupFileFinder) Find(fs []string, recursive bool) {
 	for _, f := range fs {
 		i, err := os.Stat(f)
-
 		if err != nil {
 			m.errors <- err
 			continue
@@ -56,7 +55,6 @@ func (m markupFileFinder) listDirectory(d string) {
 		}
 
 		b, err := regexp.MatchString("(^\\.)|(/\\.)", f)
-
 		if err != nil {
 			return err
 		}
@@ -67,7 +65,6 @@ func (m markupFileFinder) listDirectory(d string) {
 
 		return nil
 	})
-
 	if err != nil {
 		m.errors <- err
 	}

@@ -10,7 +10,6 @@ import (
 
 func main() {
 	args, err := getArguments(nil)
-
 	if err != nil {
 		fail(err)
 	}

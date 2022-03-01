@@ -93,6 +93,7 @@ func TestURLCheckerCheckMany(t *testing.T) {
 		}
 	}
 }
+
 func TestURLCheckerResolveURL(t *testing.T) {
 	f := newURLChecker(0, "", nil, false, false, false, newSemaphore(1024))
 

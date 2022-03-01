@@ -107,7 +107,6 @@ func (c urlChecker) CheckMany(us []string, f string, rc chan<- urlResult) {
 
 func (c urlChecker) resolveURL(u string, f string) (string, bool, error) {
 	uu, err := url.Parse(u)
-
 	if err != nil {
 		return "", false, err
 	}

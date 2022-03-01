@@ -24,13 +24,11 @@ func newFileChecker(timeout time.Duration, d string, r *regexp.Regexp, excludePr
 
 func (c fileChecker) Check(f string) ([]urlResult, error) {
 	n, err := c.parseFile(f)
-
 	if err != nil {
 		return nil, err
 	}
 
 	us, err := c.extractURLs(n)
-
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +80,6 @@ func (c fileChecker) parseFile(f string) (*html.Node, error) {
 	}
 
 	n, err := html.Parse(bytes.NewReader(bs))
-
 	if err != nil {
 		return nil, err
 	}

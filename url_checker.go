@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,11 +24,12 @@ type urlChecker struct {
 	excludePrivateHosts bool
 	excludeLocalhost    bool
 	excludeLinkLocal    bool
+	stripRelativePrefix bool
 	semaphore           semaphore
 }
 
-func newURLChecker(t time.Duration, d string, r *regexp.Regexp, excludePrivateHosts, excludeLocalhost, excludeLinkLocal bool, s semaphore) urlChecker {
-	return urlChecker{t, d, r, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, s}
+func newURLChecker(t time.Duration, d string, r *regexp.Regexp, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, stripRelativePrefix bool, s semaphore) urlChecker {
+	return urlChecker{t, d, r, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, stripRelativePrefix, s}
 }
 
 func (c urlChecker) Check(u string, f string) error {
@@ -116,7 +118,11 @@ func (c urlChecker) resolveURL(u string, f string) (string, bool, error) {
 	}
 
 	if !path.IsAbs(uu.Path) {
-		return path.Join(filepath.Dir(f), uu.Path), true, nil
+		p := uu.Path
+		if c.stripRelativePrefix {
+			p = strings.TrimPrefix(p, "../")
+		}
+		return path.Join(filepath.Dir(f), p), true, nil
 	}
 
 	if c.documentRoot == "" {

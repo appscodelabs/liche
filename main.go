@@ -36,6 +36,7 @@ func main() {
 		args.excludePrivateHosts,
 		args.excludeLocalhost,
 		args.excludeLinkLocal,
+		args.stripRelativePrefix,
 		newSemaphore(args.concurrency))
 
 	go c.CheckMany(m.Filenames(), rc)

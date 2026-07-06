@@ -14,7 +14,7 @@ const defaultConcurrency = maxOpenFiles / 2
 const usage = `Link checker for Markdown and HTML
 
 Usage:
-	liche [-c <num-requests>] [-d <directory>] [-r] [-t <timeout>] [-x <regex>] [-p] [-h] [-l] [-v] <filenames>...
+	liche [-c <num-requests>] [-d <directory>] [-r] [-t <timeout>] [-x <regex>] [-p] [-h] [-l] [-s] [-v] <filenames>...
 
 Options:
 	-c, --concurrency <num-requests>  Set max number of concurrent HTTP requests. [default: %v]
@@ -25,6 +25,7 @@ Options:
 	-p, --exclude-private-hosts  Exclude private domains and ip addresses.
 	-h, --exclude-localhost  Exclude localhost addresses.
 	-l, --exclude-link-local  Exclude link local addresses.
+	-s, --strip-relative-prefix  Strip one leading "../" from relative local links before checking.
 	-v, --verbose  Be verbose.`
 
 type arguments struct {
@@ -36,6 +37,7 @@ type arguments struct {
 	excludePrivateHosts bool
 	excludeLocalhost    bool
 	excludeLinkLocal    bool
+	stripRelativePrefix bool
 	recursive           bool
 	verbose             bool
 }
@@ -84,6 +86,7 @@ func getArguments(argv []string) (arguments, error) {
 		args["--exclude-private-hosts"].(bool),
 		args["--exclude-localhost"].(bool),
 		args["--exclude-link-local"].(bool),
+		args["--strip-relative-prefix"].(bool),
 		args["--recursive"].(bool),
 		args["--verbose"].(bool),
 	}, nil

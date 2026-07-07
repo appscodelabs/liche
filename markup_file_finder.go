@@ -8,15 +8,21 @@ import (
 )
 
 type markupFileFinder struct {
-	filenames chan string
-	errors    chan error
+	filenames           chan string
+	errors              chan error
+	skipFilenamePattern *regexp.Regexp
 }
 
-func newMarkupFileFinder() markupFileFinder {
+func newMarkupFileFinder(skipFilenamePattern *regexp.Regexp) markupFileFinder {
 	return markupFileFinder{
 		make(chan string, maxOpenFiles),
 		make(chan error, 64),
+		skipFilenamePattern,
 	}
+}
+
+func (m markupFileFinder) skip(f string) bool {
+	return m.skipFilenamePattern != nil && m.skipFilenamePattern.MatchString(filepath.Base(f))
 }
 
 func (m markupFileFinder) Filenames() chan string {
@@ -39,7 +45,7 @@ func (m markupFileFinder) Find(fs []string, recursive bool) {
 			m.listDirectory(f)
 		} else if i.IsDir() {
 			m.errors <- fmt.Errorf("%v is not a file", f)
-		} else {
+		} else if !m.skip(f) {
 			m.filenames <- f
 		}
 	}
@@ -59,7 +65,7 @@ func (m markupFileFinder) listDirectory(d string) {
 			return err
 		}
 
-		if !i.IsDir() && !b && isMarkupFile(f) {
+		if !i.IsDir() && !b && isMarkupFile(f) && !m.skip(f) {
 			m.filenames <- f
 		}
 

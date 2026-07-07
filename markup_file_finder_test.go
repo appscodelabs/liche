@@ -8,12 +8,12 @@ import (
 )
 
 func TestNewMarkupFileFinder(t *testing.T) {
-	newMarkupFileFinder()
+	newMarkupFileFinder(nil)
 }
 
 func TestMarkupFileFinderFindWithRecursiveOption(t *testing.T) {
 	for _, fs := range [][]string{{"README.md"}, {"test"}, {"README.md", "test"}} {
-		m := newMarkupFileFinder()
+		m := newMarkupFileFinder(nil)
 		m.Find(fs, true)
 
 		assert.Equal(t, 0, len(m.Errors()))
@@ -30,7 +30,7 @@ func TestMarkupFileFinderFindWithRecursiveOption(t *testing.T) {
 }
 
 func TestMarkupFileFinderFindWithDirectory(t *testing.T) {
-	m := newMarkupFileFinder()
+	m := newMarkupFileFinder(nil)
 	m.Find([]string{"test"}, false)
 
 	assert.Equal(t, 1, len(m.Errors()))
@@ -42,7 +42,7 @@ func TestMarkupFileFinderFindWithDirectory(t *testing.T) {
 }
 
 func TestMarkupFileFinderFindWithNonExistentFile(t *testing.T) {
-	m := newMarkupFileFinder()
+	m := newMarkupFileFinder(nil)
 	m.Find([]string{"foo.md"}, false)
 
 	assert.Equal(t, 1, len(m.Errors()))
@@ -54,7 +54,7 @@ func TestMarkupFileFinderFindWithNonExistentFile(t *testing.T) {
 }
 
 func TestMarkupFileFinderListDirectory(t *testing.T) {
-	m := newMarkupFileFinder()
+	m := newMarkupFileFinder(nil)
 	m.listDirectory("test")
 	close(m.Filenames())
 
@@ -71,7 +71,7 @@ func TestMarkupFileFinderListDirectory(t *testing.T) {
 }
 
 func TestMarkupFileFinderListDirectoryWithNonExistentDirectory(t *testing.T) {
-	m := newMarkupFileFinder()
+	m := newMarkupFileFinder(nil)
 	m.listDirectory("foo")
 	close(m.Errors())
 

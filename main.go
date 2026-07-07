@@ -14,7 +14,7 @@ func main() {
 		fail(err)
 	}
 
-	m := newMarkupFileFinder()
+	m := newMarkupFileFinder(args.skipFilenamePattern)
 	wg := sync.WaitGroup{}
 
 	go m.Find(args.filenames, args.recursive)

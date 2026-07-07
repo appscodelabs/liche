@@ -14,7 +14,7 @@ const defaultConcurrency = maxOpenFiles / 2
 const usage = `Link checker for Markdown and HTML
 
 Usage:
-	liche [-c <num-requests>] [-d <directory>] [-r] [-t <timeout>] [-x <regex>] [-p] [-h] [-l] [-s] [-v] <filenames>...
+	liche [-c <num-requests>] [-d <directory>] [-r] [-t <timeout>] [-x <regex>] [-i <regex>] [-p] [-h] [-l] [-s] [-v] <filenames>...
 
 Options:
 	-c, --concurrency <num-requests>  Set max number of concurrent HTTP requests. [default: %v]
@@ -22,6 +22,7 @@ Options:
 	-r, --recursive  Search Markdown and HTML files recursively
 	-t, --timeout <timeout>  Set timeout for HTTP requests in seconds. Disabled by default.
 	-x, --exclude <regex>  Regex of links to exclude from checking.
+	-i, --skip-filename <regex>  Regex matched against each file's base name; matching files are skipped entirely.
 	-p, --exclude-private-hosts  Exclude private domains and ip addresses.
 	-h, --exclude-localhost  Exclude localhost addresses.
 	-l, --exclude-link-local  Exclude link local addresses.
@@ -34,6 +35,7 @@ type arguments struct {
 	concurrency         int
 	timeout             time.Duration
 	excludedPattern     *regexp.Regexp
+	skipFilenamePattern *regexp.Regexp
 	excludePrivateHosts bool
 	excludeLocalhost    bool
 	excludeLinkLocal    bool
@@ -77,12 +79,23 @@ func getArguments(argv []string) (arguments, error) {
 		}
 	}
 
+	skip := (*regexp.Regexp)(nil)
+
+	if args["--skip-filename"] != nil {
+		skip, err = regexp.Compile(args["--skip-filename"].(string))
+
+		if err != nil {
+			return arguments{}, err
+		}
+	}
+
 	return arguments{
 		args["<filenames>"].([]string),
 		args["--document-root"].(string),
 		int(c),
 		time.Duration(t) * time.Second,
 		r,
+		skip,
 		args["--exclude-private-hosts"].(bool),
 		args["--exclude-localhost"].(bool),
 		args["--exclude-link-local"].(bool),

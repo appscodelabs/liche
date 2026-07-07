@@ -68,6 +68,14 @@ func (c urlChecker) Check(u string, f string) error {
 
 	if local {
 		_, err := os.Stat(u)
+		// Hugo pretty URLs point at a directory-style path (e.g. `foo/`) that
+		// maps to a `foo.md` source file. If the raw path is missing and has no
+		// extension, retry with a `.md` suffix before giving up.
+		if err != nil && path.Ext(u) == "" {
+			if _, mdErr := os.Stat(u + ".md"); mdErr == nil {
+				return nil
+			}
+		}
 		return err
 	}
 

@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,11 +24,12 @@ type urlChecker struct {
 	excludePrivateHosts bool
 	excludeLocalhost    bool
 	excludeLinkLocal    bool
+	stripRelativePrefix bool
 	semaphore           semaphore
 }
 
-func newURLChecker(t time.Duration, d string, r *regexp.Regexp, excludePrivateHosts, excludeLocalhost, excludeLinkLocal bool, s semaphore) urlChecker {
-	return urlChecker{t, d, r, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, s}
+func newURLChecker(t time.Duration, d string, r *regexp.Regexp, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, stripRelativePrefix bool, s semaphore) urlChecker {
+	return urlChecker{t, d, r, excludePrivateHosts, excludeLocalhost, excludeLinkLocal, stripRelativePrefix, s}
 }
 
 func (c urlChecker) Check(u string, f string) error {
@@ -66,18 +68,31 @@ func (c urlChecker) Check(u string, f string) error {
 
 	if local {
 		_, err := os.Stat(u)
+		// A link's extension need not match its on-disk source: Hugo pretty
+		// URLs point at a directory-style path (e.g. `foo/`) and rendered
+		// `.html` links map back to a `foo.md` source file. If the raw path is
+		// missing, retry against the Markdown source before giving up.
+		if err != nil {
+			var md string
+			switch ext := path.Ext(u); ext {
+			case "":
+				md = u + ".md"
+			case ".html", ".htm":
+				md = strings.TrimSuffix(u, ext) + ".md"
+			}
+			if md != "" {
+				if _, mdErr := os.Stat(md); mdErr == nil {
+					return nil
+				}
+			}
+		}
 		return err
 	}
 
 	c.semaphore.Request()
 	defer c.semaphore.Release()
 
-	var sc int
-	if c.timeout == 0 {
-		sc, _, err = fasthttp.Get(nil, u)
-	} else {
-		sc, _, err = fasthttp.GetTimeout(nil, u, c.timeout)
-	}
+	sc, err := c.get(u)
 	if sc >= http.StatusBadRequest {
 		return fmt.Errorf("%s (HTTP error %d)", http.StatusText(sc), sc)
 	}
@@ -87,6 +102,69 @@ func (c urlChecker) Check(u string, f string) error {
 		err = nil
 	}
 	return err
+}
+
+// userAgent is sent on every outbound request. Many hosts reject requests
+// with no User-Agent (HTTP 403) or bounce them through a redirect loop; a
+// browser-like value avoids those false positives.
+const userAgent = "Mozilla/5.0 (compatible; liche link checker; +https://github.com/appscodelabs/liche)"
+
+// get performs a GET for u with a browser-like User-Agent, following redirects
+// manually so the header is preserved across every hop.
+func (c urlChecker) get(u string) (int, error) {
+	req := fasthttp.AcquireRequest()
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	req.Header.SetUserAgent(userAgent)
+
+	for redirects := 0; ; redirects++ {
+		if redirects > defaultMaxRedirects {
+			return resp.StatusCode(), fmt.Errorf("too many redirects detected when doing the request")
+		}
+		req.SetRequestURI(u)
+
+		var err error
+		if c.timeout == 0 {
+			err = fasthttp.Do(req, resp)
+		} else {
+			err = fasthttp.DoTimeout(req, resp, c.timeout)
+		}
+		if err != nil {
+			return resp.StatusCode(), err
+		}
+
+		sc := resp.StatusCode()
+		if sc < http.StatusMultipleChoices || sc >= http.StatusBadRequest {
+			return sc, nil
+		}
+		loc := resp.Header.Peek("Location")
+		if len(loc) == 0 {
+			return sc, nil
+		}
+		next, err := resolveLocation(u, string(loc))
+		if err != nil {
+			return sc, err
+		}
+		u = next
+	}
+}
+
+const defaultMaxRedirects = 16
+
+// resolveLocation resolves a possibly-relative redirect target against the
+// URL that produced it.
+func resolveLocation(base, loc string) (string, error) {
+	b, err := url.Parse(base)
+	if err != nil {
+		return "", err
+	}
+	l, err := url.Parse(loc)
+	if err != nil {
+		return "", err
+	}
+	return b.ResolveReference(l).String(), nil
 }
 
 func (c urlChecker) CheckMany(us []string, f string, rc chan<- urlResult) {
@@ -116,7 +194,11 @@ func (c urlChecker) resolveURL(u string, f string) (string, bool, error) {
 	}
 
 	if !path.IsAbs(uu.Path) {
-		return path.Join(filepath.Dir(f), uu.Path), true, nil
+		p := uu.Path
+		if c.stripRelativePrefix {
+			p = strings.TrimPrefix(p, "../")
+		}
+		return path.Join(filepath.Dir(f), p), true, nil
 	}
 
 	if c.documentRoot == "" {
